@@ -90,6 +90,7 @@ $security_nonce=wp_nonce_field( 'forgot_ajax_nonce-topbar', 'security-forgot-top
                                 print '<option value="'.$key.'">'.$name.'</option>';
                             }
                         }
+                        print '<option value="'.buyer_role_id.'">'.buyer_role_name.'</option>';
                         print '</select>';
                     }
                 }

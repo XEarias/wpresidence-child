@@ -9,3 +9,39 @@ Updated: 2015-01-25 18:19:31
 @charset "UTF-8";
 
 
+.agent_contanct_form_sidebar .log-needed, .agent_contanct_form_sidebar .role-not-allowed, .agent_contanct_form_sidebar .subscription-needed {
+    padding: 10px;
+    margin: 20px 0px;
+    line-height: 20px;
+    font-size: 16px;
+}
+
+.shadow-buyer-plans-pop {
+    top: 0px;
+    width: 100%;
+    left: 0px;
+    height: 100%;
+    background-color: #00000054;
+    position: fixed;
+    z-index: 100000000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.buyer-plans-pop {
+    background-color: white;
+    width: 60%;
+    max-width: 600px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+}
+
+.buyer-plans-pop i {
+    position: absolute;
+    top: 5%;
+    right: 5%;
+    font-size: 20px;
+    cursor: pointer;
+}
