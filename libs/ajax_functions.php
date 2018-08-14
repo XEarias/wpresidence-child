@@ -764,7 +764,7 @@ function wpestate_show_license_form(){
     
     $return =1;
     
-    
+    return 1;
     if($theme_activated!='is_active'){
         
         $theme_active_time = get_option('activation_time','');
