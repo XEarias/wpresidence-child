@@ -207,3 +207,5 @@ function print_subscription_part($property_id, $callback, $print = true){
     }
 
 }
+
+?>
