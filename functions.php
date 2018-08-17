@@ -24,6 +24,10 @@ add_action( 'wp_enqueue_scripts', 'chld_thm_cfg_parent_css' );
 
 define('buyer_role_id', 99);
 define('buyer_role_name', 'Comprador');
+define('memberships_types', [
+    "general" => 100,
+    "single" => 100
+]);
 
 
 function add_buyer_membership(){
@@ -126,29 +130,84 @@ function can_buyer_get_info($buyer_id, $property_id){
    
 }*/
 
+require_once __DIR__."/libs/mercadopago/vendor/autoload.php";
+
+
+function mercadopago_pay ($subscription_value, $token, $installments, $payment_method_id, $issuer_id, $email) {
+
+
+    MercadoPago\SDK::setAccessToken("TEST-883188144337149-081604-6e448c368c43b9b0571bd504f3f638b5-162953054");
+    //...
+    $payment = new MercadoPago\Payment();
+    $payment->transaction_amount = $subscription_value;
+    $payment->token = $token;
+    $payment->description = "Compra de plan";
+    $payment->installments = $installments;
+    $payment->payment_method_id = $payment_method_id;
+    $payment->issuer_id = $issuer_id;
+    $payment->payer = [
+        "email" => $email
+    ];
+    
+    
+    // Guarda y postea el pago
+    $payment->save();
+    //...
+    // Imprime el estado del pago
+    if($payment->status != 'approved'){
+        //wp_safe_redirect( $url);
+        return false;
+    }
+
+    return true;
+}
 
 
 function ajax_buyer_subscribe_plan() {
-    
-    $buyer_id = (isset($_GET["buyer_id"])) ? $_GET["buyer_id"] : false;
-    $subscription_type = (isset($_GET["subscription_type"])) ? $_GET["subscription_type"] : false;  
 
-    if(!$buyer_id || !$subscription_type){
-        wp_send_json_error("Falta ID del comprador o tipo de suscripcion");
-        return;
+
+    $url = $_POST["url"];
+
+    if(!is_user_logged_in()){
+        
+        wp_safe_redirect($url);
+        exit();
+    }
+
+    $buyer = wp_get_current_user();
+    $buyer_id = $buyer->ID;
+    
+    $subscription_type = (isset($_POST["subscription_type"])) ? $_POST["subscription_type"] : false;  
+
+    if(!$subscription_type){
+        wp_safe_redirect($url);
+        exit();
     }   
 
-    $property_id = (isset($_GET["property_id"])) ? $_GET["property_id"] : false;
+    $property_id = (isset($_POST["property_id"])) ? $_POST["property_id"] : false;
 
     $current_subscription = get_buyer_current_subscription($buyer_id, $property_id);
 
     if($current_subscription){
-        wp_send_json_error("ya posee una suscripcion");
-        return;
+        wp_safe_redirect($url);
+        exit();
     }
 
-    
+    $subscription_value = memberships_types[$subscription_type];
 
+    $token = $_POST["token"];
+    $payment_method_id = $_POST["payment_method_id"];
+    $installments = $_POST["installments"];
+    $issuer_id = $_POST["issuer_id"];
+
+    $res = mercadopago_pay($subscription_value, $token, $installments, $payment_method_id, $issuer_id, $buyer->user_email);
+      
+    if(!$res){
+        wp_safe_redirect( $url);
+        exit();
+    }
+        
+    
     $new_subscription_args = [
         'post_title'    => 'Membresia',
         'post_content'  => 'x', 
@@ -163,8 +222,9 @@ function ajax_buyer_subscribe_plan() {
     if($property_id && $subscription_type == "single"){
         $new_subscription_args["meta_input"]["buyer_membership_property"] = $property_id;
     }    
-    header('Content-Type: application/json');
-    echo json_encode(["success" => true]);
+   
+    wp_safe_redirect( $url);
+
     wp_insert_post($new_subscription_args);
     
 
@@ -175,6 +235,42 @@ function ajax_buyer_subscribe_plan() {
 add_action( 'admin_post_buyer_subscribe_plan', 'ajax_buyer_subscribe_plan' );
 add_action( 'admin_post_nopriv_buyer_subscribe_plan', 'ajax_buyer_subscribe_plan' );
 
+
+
+function ajax_seller_subscribe_plan() {
+
+
+    $url = $_POST["url"];
+
+    if(!is_user_logged_in()){
+        
+        wp_safe_redirect($url);
+        exit();
+    }
+
+
+    $seller = wp_get_current_user();
+    $seller_id = $seller->ID;
+    $selected_pack            =   intval( $_POST['pack_id'] );
+    $subscription_value              =   get_post_meta($selected_pack, 'pack_price', true);
+
+    $token = $_POST["token"];
+    $payment_method_id = $_POST["payment_method_id"];
+    $installments = $_POST["installments"];
+    $issuer_id = $_POST["issuer_id"];
+
+    $res = mercadopago_pay($subscription_value, $token, $installments, $payment_method_id, $issuer_id, $buyer->user_email);
+    
+    wpestate_upgrade_user_membership($seller_id,$selected_pack,'One Time', '',1);
+    
+    wp_safe_redirect( $url);
+    exit();
+    
+}
+
+
+add_action( 'admin_post_seller_subscribe_plan', 'ajax_seller_subscribe_plan' );
+add_action( 'admin_post_nopriv_seller_subscribe_plan', 'ajax_seller_subscribe_plan' );
 
 function print_subscription_part($property_id, $callback, $print = true){
 
@@ -207,5 +303,7 @@ function print_subscription_part($property_id, $callback, $print = true){
     }
 
 }
+
+
 
 ?>

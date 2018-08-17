@@ -45,3 +45,13 @@ Updated: 2015-01-25 18:19:31
     font-size: 20px;
     cursor: pointer;
 }
+
+
+.package_selected {
+    border: 1px solid #384850;
+}
+
+.package_selected .buypackage{
+    background-color: #334249;
+
+}
