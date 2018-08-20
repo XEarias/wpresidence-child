@@ -64,7 +64,7 @@ function get_buyer_current_subscription($buyer_id, $property_id = false){
                 'compare' => '='
             ]
         ],
-        "post_author" => $buyer_id,
+        "author" => $buyer_id,
         'date_query' => [            
             'after' => date('Y-m-d', strtotime('-365 days')) 
         ]
@@ -94,7 +94,7 @@ function get_buyer_current_subscription($buyer_id, $property_id = false){
                 'compare' => '='
             ]
         ],
-        "post_author" => $buyer_id,
+        "author" => $buyer_id,
         'date_query' => [            
             'after' => date('Y-m-d', strtotime('-30 days')) 
         ]
@@ -118,7 +118,7 @@ function get_buyer_current_subscription($buyer_id, $property_id = false){
     $single_args = [
         "post_type" => "buyer_membership",
         "numberposts" => 1,
-        "post_author" => $buyer_id,
+        "author" => $buyer_id,
         'orderby'   => 'date', 
         'order'     => 'DESC',
         'meta_query' => [
@@ -237,17 +237,27 @@ function ajax_buyer_subscribe_plan() {
     $seller_membership = 'seller_membership_'.$subscription_type;
     $seller_membership_price = get_option($seller_membership.'_price' );
 
-    $token = $_POST["token"];
-    $payment_method_id = $_POST["payment_method_id"];
-    $installments = $_POST["installments"];
-    $issuer_id = $_POST["issuer_id"];
+    $payment_method_name = "";
 
-    $res = mercadopago_pay($seller_membership_price, $token, $installments, $payment_method_id, $issuer_id, $buyer->user_email);
+    if(isset($_POST["mercadopago"])){
+
+        $payment_method_name = "mercadopago";
+
+        $token = $_POST["token"];
+        $payment_method_id = $_POST["payment_method_id"];
+        $installments = $_POST["installments"];
+        $issuer_id = $_POST["issuer_id"];    
+
+        $res = mercadopago_pay($seller_membership_price, $token, $installments, $payment_method_id, $issuer_id, $buyer->user_email);
       
-    if(!$res){
-        wp_safe_redirect( $url);
-        exit();
+        if(!$res){
+            wp_safe_redirect( $url);
+            exit();
+        }
+
     }
+
+   
         
     
     $new_subscription_args = [
@@ -256,7 +266,8 @@ function ajax_buyer_subscribe_plan() {
         "post_type" => "buyer_membership",
         "post_status" => "publish",
         "meta_input" => [
-            "buyer_membership_type" => $subscription_type
+            "buyer_membership_type" => $subscription_type,
+            "buyer_payment_method" =>  $payment_method_name
         ],
         "post_author" => $buyer_id
     ];
@@ -332,14 +343,14 @@ function print_subscription_part($property_id, $callback, $print = true){
         return;
     }
 
-    $current_viewer_role = get_user_meta($current_viewer_id, 'user_estate_role',true);
-                
+    /*  $current_viewer_role = get_user_meta($current_viewer_id, 'user_estate_role',true);
+      
     if($current_viewer_role != buyer_role_id){//si es un usuario de tipo comprador
         if($print){
             get_template_part('templates/agent_role_not_allowed');
         }
         return;
-    }
+    }*/
 
     $current_viewer_subscription = get_buyer_current_subscription($current_viewer_id, $property_id);
                 
@@ -629,4 +640,29 @@ function add_theme_admin_pages(){
     add_action( 'admin_menu', 'add_theme_admin_pages' );
     
 
+
+
+    function days_left($date_start, $type){
+
+        if($type == "ultimate"){
+            $duration = 365;
+        } else if($type == "general"){
+            $duration = 30;
+        }
+    
+        $earlier = new DateTime($date_start);
+        $today = new DateTime();
+    
+        $diff = $today->diff($earlier)->d;
+    
+        $left = (($duration - $diff) >= 0 ) ? $duration - $diff : 0; 
+        $days = [
+            "used" => $diff,
+            "left" => $left
+        ];
+        return $days;
+    
+    
+    
+    }
 ?>

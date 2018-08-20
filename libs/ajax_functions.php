@@ -3279,11 +3279,11 @@ function wpestate_ajax_register_user(){
                 wpestate_wp_new_user_notification( $user_id, $user_password ) ;
                 update_user_meta( $user_id, 'user_estate_role', $new_user_type) ;
              
-                
+                /*
                 if($new_user_type === buyer_role_id){                    
                     die();
                     return;
-                }
+                }*/
 
                 if($new_user_type!==0 && $new_user_type!==1 ){  
                     wpestate_register_as_user($user_name,$user_id,$new_user_type);

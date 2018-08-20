@@ -65,3 +65,74 @@ button.mercadopago-button {
     color: transparent;
     background-color: #e6e6e6;
 }
+
+
+
+
+.plan-body {
+    background: #434a54;
+    color: white;
+    border-radius: 5px;
+}
+
+.plan-body h5 {
+    color: white;
+    padding-top: 12px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+button.mercadopago-button {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 80% auto;
+    width: 80% !important;
+    height: 30px !important;
+    color: transparent;
+    margin-bottom: 12px;
+    background-color: #ffffff !important;
+}
+
+
+.shadow-buyer-plans-pop .title {
+    color: #137194;
+    font-size: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.plan-body div ul {
+    list-style-type: none;
+    margin: 0 0 20px 0;
+}
+
+button.btn.pay-contact-btn {
+    color: #fff;
+    background-color: #33b0e1;
+    border-radius: 1px;
+    padding: 8px 0;
+    -webkit-box-shadow: 0px 2px 0px 0px rgb(86, 92, 101);
+    box-shadow: 0px 2px 0px 0px rgb(86, 92, 101);
+}
+
+
+.vc_toggle .vc_toggle_title {
+    background-color: #565c65;
+    padding: 10px !important;
+}
+
+.vc_toggle .vc_toggle_title h4 {
+	color: white;
+}
+
+.vc_toggle.vc_toggle_active .vc_toggle_title {
+    background-color: #1ca8dd;
+}
+
+.vc_toggle_content p {
+    padding: 0 10px;
+}
+
+.vc_toggle_size_md.vc_toggle_default .vc_toggle_content .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_default .vc_toggle_title .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_round .vc_toggle_content .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_round .vc_toggle_title .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_rounded .vc_toggle_content .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_rounded .vc_toggle_title .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_simple .vc_toggle_content .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_simple .vc_toggle_title .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_square .vc_toggle_content .vc_toggle_icon, .vc_toggle_size_md.vc_toggle_square .vc_toggle_title .vc_toggle_icon {
+    left: 6px;
+}
