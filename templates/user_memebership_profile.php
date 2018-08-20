@@ -150,22 +150,22 @@ if (    $is_membership==1  ){
 
                         
 
-                       // print'<input type="checkbox" name="packagebox" id="pack_box" value="1" style="display:block;" />'.__('Switch to this package', 'wpestate');  
+                       // print'<input type="checkbox" name="packagebox" id="pack_box" value="1" style="display:block;" />'.__('Switch to this package', 'wpestate');
+                       
+                        $mercadopago_active = get_option("mercadopago_active");
+                        
+                        if($mercadopago_active):
+                            $mercadopago_public_key = get_option("mercadopago_public_key", '');
                         ?>
-
+                        
                         <style>
                             button.mercadopago-button {
                                 background-image: url(<?php echo get_stylesheet_directory_uri()."/img/mercadopago-logo.png"; ?>);
-                                background-position: center;
-                                background-repeat: no-repeat;
-                                background-size: 80% auto;
-                                width: 150px;
-                                height: 50px;
-                                color: transparent;
-                                background-color: #e6e6e6;
                             }
-                        
+
                         </style>
+
+                       
 
                         <form action="<?php echo admin_url('admin-post.php');?>" method="POST">
                             <input type="hidden" name="action" value="seller_subscribe_plan"/>
@@ -173,11 +173,13 @@ if (    $is_membership==1  ){
                             <input type="hidden" name="pack_id" value="<?php echo $postid;?>"/>
                             <script
                                 src="https://www.mercadopago.cl/integrations/v1/web-tokenize-checkout.js"
-                                data-public-key="TEST-4840c8f8-981f-472c-936c-cef9b2cbd44f"
+                                data-public-key="<?php echo $mercadopago_public_key;?>"
                                 data-transaction-amount="<?php echo $pack_price;?>" data-button-label="">
                             </script>
                         </form>
                         <?php
+
+                        endif;
 
                         print '</div>';
                         print'</div>';//end pack listing;

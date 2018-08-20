@@ -55,3 +55,13 @@ Updated: 2015-01-25 18:19:31
     background-color: #334249;
 
 }
+
+button.mercadopago-button {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 80% auto;
+    width: 150px;
+    height: 50px;
+    color: transparent;
+    background-color: #e6e6e6;
+}

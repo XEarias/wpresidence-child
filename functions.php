@@ -25,8 +25,9 @@ add_action( 'wp_enqueue_scripts', 'chld_thm_cfg_parent_css' );
 define('buyer_role_id', 99);
 define('buyer_role_name', 'Comprador');
 define('memberships_types', [
-    "general" => 100,
-    "single" => 100
+    "single" => "Plan por Propiedad",
+    "general" => "Plan Mensual",
+    "ultimate" => "Plan Anual"   
 ]);
 
 
@@ -48,6 +49,37 @@ add_action( 'init', 'add_buyer_membership');
 
 
 function get_buyer_current_subscription($buyer_id, $property_id = false){
+
+
+    //si posee una subscripcion ultimate la retornamos y obviamos cualquier subscription
+    $ultimate_args = [
+        "post_type" => "buyer_membership",
+        "numberposts" => 1,
+        'orderby'   => 'date', 
+        'order'     => 'DESC',
+        'meta_query' => [
+            [
+                'key' => 'buyer_membership_type',
+                'value' => "ultimate",
+                'compare' => '='
+            ]
+        ],
+        "post_author" => $buyer_id,
+        'date_query' => [            
+            'after' => date('Y-m-d', strtotime('-365 days')) 
+        ]
+    ];
+
+    $ultimate_subscriptions = get_posts($ultimate_args);
+
+    if($ultimate_subscriptions && count($ultimate_subscriptions)){
+        $current_ultimate_subscription = $ultimate_subscriptions[0];
+
+        $current_subscription = [
+            "ID" => $current_ultimate_subscription->ID            
+        ];
+        return $current_subscription;
+    }
 
     //si posee una subscripcion general la retornamos y obviamos cualquier subscription individual
     $general_args = [
@@ -135,8 +167,15 @@ require_once __DIR__."/libs/mercadopago/vendor/autoload.php";
 
 function mercadopago_pay ($subscription_value, $token, $installments, $payment_method_id, $issuer_id, $email) {
 
+    $mercadopago_active = get_option("mercadopago_active");
+                        
+    if(!$mercadopago_active){
+        return false;
+    }
 
-    MercadoPago\SDK::setAccessToken("TEST-883188144337149-081604-6e448c368c43b9b0571bd504f3f638b5-162953054");
+    $mercadopago_access_token = get_option("mercadopago_access_token", '');
+
+    MercadoPago\SDK::setAccessToken($mercadopago_access_token);
     //...
     $payment = new MercadoPago\Payment();
     $payment->transaction_amount = $subscription_value;
@@ -193,14 +232,17 @@ function ajax_buyer_subscribe_plan() {
         exit();
     }
 
-    $subscription_value = memberships_types[$subscription_type];
+    //$membership_type = memberships_types[$subscription_type];
+
+    $seller_membership = 'seller_membership_'.$subscription_type;
+    $seller_membership_price = get_option($seller_membership.'_price' );
 
     $token = $_POST["token"];
     $payment_method_id = $_POST["payment_method_id"];
     $installments = $_POST["installments"];
     $issuer_id = $_POST["issuer_id"];
 
-    $res = mercadopago_pay($subscription_value, $token, $installments, $payment_method_id, $issuer_id, $buyer->user_email);
+    $res = mercadopago_pay($seller_membership_price, $token, $installments, $payment_method_id, $issuer_id, $buyer->user_email);
       
     if(!$res){
         wp_safe_redirect( $url);
@@ -274,36 +316,317 @@ add_action( 'admin_post_nopriv_seller_subscribe_plan', 'ajax_seller_subscribe_pl
 
 function print_subscription_part($property_id, $callback, $print = true){
 
-    if(is_user_logged_in()){
-        
-        $current_viewer_id = get_current_user_id();
+    if(!is_user_logged_in()){
+        if($print){
+            get_template_part('templates/agent_log_needed');
+        }        
+        return;
+    }
 
-        if($current_viewer_id !== 0){
-            
-            $current_viewer_role = get_user_meta($current_viewer_id, 'user_estate_role',true);
-                
-            if($current_viewer_role == buyer_role_id){//si es un usuario de tipo comprador
+    $current_viewer_id = get_current_user_id();
 
-                $current_viewer_subscription = get_buyer_current_subscription($current_viewer_id, $property_id);
-                
-                if($current_viewer_subscription){
-                    $callback();
-                } else if($print) {
-                    get_template_part('templates/agent_subscription_needed');
-                }
-                
-            } else if($print) {
-                get_template_part('templates/agent_role_not_allowed');
-            }
-        } else if($print) {//si no se ha logeado
+    if($current_viewer_id === 0){
+        if($print){
             get_template_part('templates/agent_log_needed');
         }
-    } else if($print) {//si no se ha logeado
-        get_template_part('templates/agent_log_needed');
+        return;
     }
+
+    $current_viewer_role = get_user_meta($current_viewer_id, 'user_estate_role',true);
+                
+    if($current_viewer_role != buyer_role_id){//si es un usuario de tipo comprador
+        if($print){
+            get_template_part('templates/agent_role_not_allowed');
+        }
+        return;
+    }
+
+    $current_viewer_subscription = get_buyer_current_subscription($current_viewer_id, $property_id);
+                
+    if(!$current_viewer_subscription){
+        if($print){
+            get_template_part('templates/agent_subscription_needed');
+        }
+        return;         
+    }
+
+    $callback();
+    
+
+
 
 }
 
 
+///////////////////////////////////////////////////////
+/////////// Opciones de control de pasarelas///////////
+///////////////////////////////////////////////////////
+
+
+//seccion de textos
+function mercadopago_section_html (){
+    echo "Datos para funcionalidades de mercadopago";
+}
+
+function mercadopago_public_key_html(){
+
+    $mercadopago_public_key = get_option( 'mercadopago_public_key', '');
+
+    ?>
+
+    <input type="text" name="mercadopago_public_key" value="<?php echo $mercadopago_public_key;?>"/>
+
+    <?php 
+}
+
+
+function mercadopago_access_token_html(){
+
+    $mercadopago_access_token = get_option( 'mercadopago_access_token', '');
+
+    ?>
+
+    <input type="text" name="mercadopago_access_token" value="<?php echo $mercadopago_access_token;?>"/>
+
+    <?php 
+}
+
+
+
+function mercadopago_active_html(){
+
+    $mercadopago_active = get_option( 'mercadopago_active', '');
+
+    ?>
+
+    <input type="checkbox" name="mercadopago_active" value="active" <?php checked('active', $mercadopago_active);?> />
+
+    <?php 
+}
+
+
+
+function memberships_section_html(){
+    echo '';
+}
+function memberships_name_html($args){
+
+    $id = $args["id"];
+
+    $membership_value = get_option( $id, '');
+
+    ?>
+
+    <input type="text" name="<?php echo $id;?>" value="<?php echo $membership_value;?>"/>
+
+    <?php 
+
+}
+function memberships_price_html($args){
+
+    $id = $args["id"];
+
+    $membership_value = get_option( $id, '');
+
+    ?>
+
+    <input type="text" name="<?php echo $id;?>" value="<?php echo $membership_value;?>"/>
+
+    <?php 
+
+}
+function memberships_description_html($args){
+
+    $id = $args["id"];
+
+    $membership_value = get_option( $id, '');
+
+    wp_editor($membership_value, $id);
+
+}
+
+
+
+function buyer_memberships_pop_section_html(){
+    echo '';
+}
+function buyer_memberships_text_pop_html($args){
+
+    $id = $args["id"];
+
+    $text_popup = get_option( $id, '');
+
+    wp_editor($text_popup, $id);
+
+}
+
+
+
+
+function add_settings_extra_payments(){
+
+    //**** MERCADOPAGO ****/
+
+    //seccion de textos
+    add_settings_section(
+        'mercadopago_section',
+        'Configuración de Mercadopago',
+        'mercadopago_section_html',
+        'extra_payments_methods'
+    );
+
+    /*
+    add_settings_field(
+        'mercadopago_mode',
+        'Modo:',
+        'mercadopago_mode_html',
+        'extra_payments_methods',
+        'mercadopago_section'
+    );
+
+    */
+
+    add_settings_field(
+        'mercadopago_public_key',
+        'Clave Pública:',
+        'mercadopago_public_key_html',
+        'extra_payments_methods',
+        'mercadopago_section'
+    );
+
+    add_settings_field(
+        'mercadopago_access_token',
+        'Token de Acceso:',
+        'mercadopago_access_token_html',
+        'extra_payments_methods',
+        'mercadopago_section'
+    );
+
+    add_settings_field(
+        'mercadopago_active',
+        'Activar:',
+        'mercadopago_active_html',
+        'extra_payments_methods',
+        'mercadopago_section'
+    );
+    
+
+
+    //register_setting( 'extra_payments_methods', 'mercadopago_mode' );
+    register_setting( 'extra_payments_methods', 'mercadopago_public_key' );
+    register_setting( 'extra_payments_methods', 'mercadopago_access_token' );
+    register_setting( 'extra_payments_methods', 'mercadopago_active' );
+
+
+    /***** TEXTO POP UP PLANES *****/
+    
+    //seccion de textos
+    add_settings_section(
+        'buyer_memberships_pop_section',
+        'Popup de Membresías de Compradores',
+        'buyer_memberships_pop_section_html',
+        'extra_payments_methods'
+    );
+
+    add_settings_field(
+        'buyer_memberships_text_pop',
+        'Titulo del Popup:',
+        'buyer_memberships_text_pop_html',
+        'extra_payments_methods',
+        'buyer_memberships_pop_section',
+        [
+            "id" => 'buyer_memberships_text_pop'
+        ]
+    );
+
+    register_setting( 'extra_payments_methods', 'buyer_memberships_text_pop' );
+    
+
+
+
+    /**** PLANES DE COMPRADORES ****/
+
+    foreach(memberships_types as  $membership_type => $label){
+
+        $seller_membership = 'seller_membership_'.$membership_type;
+
+
+
+        add_settings_section(
+            $seller_membership.'_section',
+            'Configuración de '.$label,
+            'memberships_section_html',
+            'extra_payments_methods'
+        );
+
+        add_settings_field(
+            $seller_membership.'_name',
+            'Nombre del Plan:',
+            'memberships_name_html',
+            'extra_payments_methods',
+            $seller_membership.'_section',
+            [
+                "id" => $seller_membership.'_name'
+            ]
+        );
+
+        add_settings_field(
+            $seller_membership.'_price',
+            'Precio del Plan:',
+            'memberships_price_html',
+            'extra_payments_methods',
+            $seller_membership.'_section',
+            [
+                "id" => $seller_membership.'_price'
+            ]
+        );
+
+        add_settings_field(
+            $seller_membership.'_description',
+            'Descripción del Plan:',
+            'memberships_description_html',
+            'extra_payments_methods',
+            $seller_membership.'_section',
+            [
+                "id" => $seller_membership.'_description'
+            ]
+        );
+        
+        register_setting( 'extra_payments_methods',  $seller_membership.'_name' );
+        register_setting( 'extra_payments_methods',  $seller_membership.'_price' );
+        register_setting( 'extra_payments_methods',  $seller_membership.'_description' );
+    }
+
+
+}
+
+add_action ('admin_init', 'add_settings_extra_payments');
+
+
+
+function extra_payments_methods_html(){
+
+    ?>
+    <form method="POST" action="options.php">
+    <?php 
+    
+        settings_fields( 'extra_payments_methods' );
+        do_settings_sections( 'extra_payments_methods' ); 
+        submit_button();
+    ?>
+    </form>
+    <?php 
+    
+}
+
+
+
+function add_theme_admin_pages(){
+    add_menu_page("Metodos de Pago Extra",  "Metodos de Pago Extra", "manage_options", "extra_payments_methods", "extra_payments_methods_html" );
+    }
+    
+    
+    add_action( 'admin_menu', 'add_theme_admin_pages' );
+    
 
 ?>
